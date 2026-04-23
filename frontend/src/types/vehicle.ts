@@ -1,0 +1,60 @@
+export interface Telemetry {
+  lat: number
+  lon: number
+  speed: number
+  battery: number
+  mode: string
+  heading: number
+  gps_accuracy: number
+}
+
+export interface SensorData {
+  front: [number, number, number, number]
+  rear: [number, number, number, number]
+}
+
+export interface Alert {
+  type: 'info' | 'warning' | 'obstacle' | 'error'
+  message: string
+  timestamp: string
+}
+
+export interface VehicleStatus {
+  state: string
+  message: string
+}
+
+export interface Waypoint {
+  lat: number
+  lon: number
+}
+
+export interface TelemetryHistory {
+  timestamp: string
+  speed: number
+  battery: number
+}
+
+export interface RouteSession {
+  id: number
+  name: string
+  started_at: string
+  ended_at: string | null
+  point_count: number
+  distance_m: number
+}
+
+export interface RoutePoint {
+  timestamp: string
+  lat: number
+  lon: number
+  speed: number | null
+  heading: number | null
+  battery: number | null
+}
+
+export interface RouteDetail {
+  session: RouteSession
+  points: RoutePoint[]
+}
+
