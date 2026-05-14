@@ -15,6 +15,8 @@ import paho.mqtt.client as mqtt
 
 BROKER = os.environ.get("MQTT_BROKER", "localhost")
 PORT = int(os.environ.get("MQTT_PORT", 1883))
+USERNAME = os.environ.get("MQTT_USERNAME", "")
+PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 # Patrol waypoints near Anenii Noi, Republic of Moldova
 WAYPOINTS = [
@@ -27,6 +29,10 @@ WAYPOINTS = [
 
 def connect_mqtt() -> mqtt.Client:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    if USERNAME:
+        client.username_pw_set(USERNAME, PASSWORD)
+    if PORT == 8883:
+        client.tls_set()
     while True:
         try:
             client.connect(BROKER, PORT, 60)

@@ -16,9 +16,11 @@ from pydantic import BaseModel
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("agc-backend")
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://agc:agcpassword@localhost:5432/agcdb")
-MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
-MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
+DATABASE_URL  = os.environ.get("DATABASE_URL", "postgresql://agc:agcpassword@localhost:5432/agcdb")
+MQTT_BROKER   = os.environ.get("MQTT_BROKER", "localhost")
+MQTT_PORT     = int(os.environ.get("MQTT_PORT", 1883))
+MQTT_USERNAME = os.environ.get("MQTT_USERNAME", "")
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 database = Database(DATABASE_URL)
 
@@ -171,6 +173,10 @@ async def _handle_alert(alert: dict):
 def start_mqtt():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_message = on_mqtt_message
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    if MQTT_PORT == 8883:
+        client.tls_set()
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.subscribe([
         ("agc/vehicle/telemetry", 0),
