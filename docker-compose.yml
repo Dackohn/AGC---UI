@@ -1,18 +1,4 @@
 services:
-  mosquitto:
-    image: eclipse-mosquitto:2.0
-    container_name: agc-mosquitto
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - mosquitto-data:/mosquitto/data
-      - mosquitto-log:/mosquitto/log
-    networks:
-      - agc-net
-    restart: unless-stopped
-
   postgres:
     image: postgres:16-alpine
     container_name: agc-postgres
@@ -35,30 +21,14 @@ services:
   backend:
     build: ./backend
     container_name: agc-backend
+    env_file: .env
     environment:
       DATABASE_URL: postgresql://agc:agcpassword@postgres:5432/agcdb
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: "1883"
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
-      mosquitto:
-        condition: service_started
-    networks:
-      - agc-net
-    restart: unless-stopped
-
-  simulator:
-    build: ./simulator
-    container_name: agc-simulator
-    environment:
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: "1883"
-    depends_on:
-      - mosquitto
-      - backend
     networks:
       - agc-net
     restart: unless-stopped
@@ -74,9 +44,21 @@ services:
       - agc-net
     restart: unless-stopped
 
+  simulator:
+    build: ./simulator
+    container_name: agc-simulator
+    environment:
+      MQTT_BROKER: a19bbaf9d8a74507a6d0a3ce8d4ddbad.s1.eu.hivemq.cloud
+      MQTT_PORT: "8883"
+      MQTT_USERNAME: GolfCart123
+      MQTT_PASSWORD: IOTgc1234
+    depends_on:
+      - backend
+    networks:
+      - agc-net
+    restart: unless-stopped
+
 volumes:
-  mosquitto-data:
-  mosquitto-log:
   postgres-data:
 
 networks:
