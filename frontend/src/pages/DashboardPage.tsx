@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { AlertPanel } from '../components/AlertPanel'
+import { MissionsPanel } from '../components/MissionsPanel'
 import { ParkingRadar } from '../components/ParkingRadar'
 import { TelemetryChart } from '../components/TelemetryChart'
 import { VehicleMap } from '../components/VehicleMap'
 import { VehicleStatus } from '../components/VehicleStatus'
+import { useVehicleStore } from '../store/vehicleStore'
 import type { Waypoint } from '../types/vehicle'
 
 async function apiPost(path: string, body?: unknown) {
@@ -15,14 +17,15 @@ async function apiPost(path: string, body?: unknown) {
 }
 
 export function DashboardPage() {
+  const activeVehicleId = useVehicleStore((s) => s.activeVehicleId)
   const [waypoints, setWaypoints] = useState<Waypoint[]>([])
 
   async function handleStartMission() {
-    await apiPost('/api/command/mission', { waypoints })
+    await apiPost('/api/command/mission', { waypoints, vehicle_id: activeVehicleId })
   }
 
   async function handleGoHome() {
-    await apiPost('/api/command/home')
+    await apiPost('/api/command/home', { vehicle_id: activeVehicleId })
   }
 
   return (
@@ -35,7 +38,7 @@ export function DashboardPage() {
 
       {/* Col 2–3: map + chart */}
       <div className="lg:col-span-2 space-y-4">
-        <VehicleMap waypoints={waypoints} />
+        <VehicleMap waypoints={waypoints} onAddWaypoint={(wp) => setWaypoints((p) => [...p, wp])} />
         <TelemetryChart />
       </div>
 
@@ -43,12 +46,11 @@ export function DashboardPage() {
       <div className="space-y-4">
         {/* Inline mission control (simplified — full controls on /control) */}
         <div className="bg-agc-panel border border-agc-border rounded-xl p-4 space-y-3">
-          <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Mission</div>
-
-          <div className="space-y-2">
-            <div className="text-xs text-slate-500 uppercase tracking-wider">Add Waypoint</div>
-            <WaypointInput onAdd={(wp) => setWaypoints((p) => [...p, wp])} />
+          <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
+            Mission
           </div>
+
+          <p className="text-xs text-slate-500">Click on the map to add waypoints</p>
 
           {waypoints.length > 0 && (
             <div className="space-y-1 max-h-32 overflow-y-auto">
@@ -88,43 +90,10 @@ export function DashboardPage() {
           </div>
         </div>
 
+        <MissionsPanel currentWaypoints={waypoints} onLoad={setWaypoints} />
+
         <AlertPanel />
       </div>
-    </div>
-  )
-}
-
-function WaypointInput({ onAdd }: { onAdd: (wp: Waypoint) => void }) {
-  const [lat, setLat] = useState('')
-  const [lon, setLon] = useState('')
-  const [err, setErr] = useState('')
-
-  function add() {
-    const la = parseFloat(lat)
-    const lo = parseFloat(lon)
-    if (isNaN(la) || isNaN(lo) || la < -90 || la > 90 || lo < -180 || lo > 180) {
-      setErr('Invalid coordinates')
-      return
-    }
-    setErr('')
-    onAdd({ lat: la, lon: lo })
-    setLat('')
-    setLon('')
-  }
-
-  return (
-    <div className="space-y-1">
-      <div className="flex gap-1">
-        <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Lat"
-          className="flex-1 bg-agc-dark border border-agc-border rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-agc-blue" />
-        <input value={lon} onChange={(e) => setLon(e.target.value)} placeholder="Lon"
-          className="flex-1 bg-agc-dark border border-agc-border rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-agc-blue" />
-        <button onClick={add}
-          className="px-3 py-1.5 rounded-lg bg-agc-blue hover:bg-blue-600 active:scale-95 transition-all text-xs font-bold text-white">
-          +
-        </button>
-      </div>
-      {err && <div className="text-xs text-agc-red">{err}</div>}
     </div>
   )
 }

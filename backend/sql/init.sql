@@ -44,6 +44,24 @@ CREATE TABLE IF NOT EXISTS route_points (
     battery FLOAT
 );
 
+CREATE TABLE IF NOT EXISTS missions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    waypoints JSONB NOT NULL DEFAULT '[]',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS vehicles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    vehicle_id VARCHAR(64) NOT NULL UNIQUE,
+    color VARCHAR(16) NOT NULL DEFAULT '#3b82f6',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+INSERT INTO vehicles (name, vehicle_id, color)
+VALUES ('AGC Golf Cart', 'vehicle', '#3b82f6')
+ON CONFLICT (vehicle_id) DO NOTHING;
+
 CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_route_points_session ON route_points(session_id, timestamp);

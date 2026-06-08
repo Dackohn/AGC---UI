@@ -1,5 +1,23 @@
 import { create } from 'zustand'
-import type { Alert, RoutePoint, SensorData, Telemetry, TelemetryHistory, VehicleStatus } from '../types/vehicle'
+import type {
+  Alert,
+  RegisteredVehicle,
+  RoutePoint,
+  SensorData,
+  Telemetry,
+  TelemetryHistory,
+  VehicleStatus,
+} from '../types/vehicle'
+
+const ACTIVE_VEHICLE_KEY = 'agc.activeVehicleId'
+
+function loadActiveVehicleId(): string {
+  try {
+    return localStorage.getItem(ACTIVE_VEHICLE_KEY) ?? 'vehicle'
+  } catch {
+    return 'vehicle'
+  }
+}
 
 interface VehicleStore {
   telemetry: Telemetry | null
@@ -10,7 +28,10 @@ interface VehicleStore {
   connected: boolean
   recording: boolean
   recordingSessionId: number | null
-  overlayRoute: RoutePoint[] | null  // historical route displayed on map
+  overlayRoute: RoutePoint[] | null // historical route displayed on map
+
+  registeredVehicles: RegisteredVehicle[]
+  activeVehicleId: string
 
   setTelemetry: (t: Telemetry) => void
   setSensors: (s: SensorData) => void
@@ -20,6 +41,8 @@ interface VehicleStore {
   setHistory: (h: TelemetryHistory[]) => void
   setRecording: (active: boolean, sessionId: number | null) => void
   setOverlayRoute: (points: RoutePoint[] | null) => void
+  setRegisteredVehicles: (vehicles: RegisteredVehicle[]) => void
+  setActiveVehicleId: (id: string) => void
   setState: (state: {
     telemetry?: Telemetry
     sensors?: SensorData
@@ -40,6 +63,9 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
   recordingSessionId: null,
   overlayRoute: null,
 
+  registeredVehicles: [],
+  activeVehicleId: loadActiveVehicleId(),
+
   setTelemetry: (t) =>
     set((prev) => ({
       telemetry: t,
@@ -51,8 +77,7 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
 
   setSensors: (s) => set({ sensors: s }),
 
-  addAlert: (a) =>
-    set((prev) => ({ alerts: [a, ...prev.alerts].slice(0, 50) })),
+  addAlert: (a) => set((prev) => ({ alerts: [a, ...prev.alerts].slice(0, 50) })),
 
   setStatus: (s) => set({ status: s }),
 
@@ -64,6 +89,25 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
 
   setOverlayRoute: (points) => set({ overlayRoute: points }),
 
+  setRegisteredVehicles: (vehicles) => set({ registeredVehicles: vehicles }),
+
+  setActiveVehicleId: (id) => {
+    try {
+      localStorage.setItem(ACTIVE_VEHICLE_KEY, id)
+    } catch {
+      /* ignore (e.g. private browsing) */
+    }
+    set({
+      activeVehicleId: id,
+      telemetry: null,
+      sensors: { front: [0, 0, 0, 0], rear: [0, 0, 0, 0] },
+      alerts: [],
+      status: { state: 'unknown', message: 'Switching vehicle...' },
+      history: [],
+      overlayRoute: null,
+    })
+  },
+
   setState: ({ telemetry, sensors, alerts, status, recording }) =>
     set((prev) => ({
       ...(telemetry ? { telemetry } : {}),
@@ -74,7 +118,11 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
       history: telemetry
         ? [
             ...prev.history.slice(-119),
-            { timestamp: new Date().toISOString(), speed: telemetry.speed, battery: telemetry.battery },
+            {
+              timestamp: new Date().toISOString(),
+              speed: telemetry.speed,
+              battery: telemetry.battery,
+            },
           ]
         : prev.history,
     })),

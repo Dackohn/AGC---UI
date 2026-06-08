@@ -58,3 +58,18 @@ export interface RouteDetail {
   points: RoutePoint[]
 }
 
+export interface SavedMission {
+  id: number
+  name: string
+  waypoints: Waypoint[]
+  created_at: string
+}
+
+export interface RegisteredVehicle {
+  id: number
+  name: string
+  vehicle_id: string
+  color: string
+  created_at: string
+  last_seen: string | null
+}

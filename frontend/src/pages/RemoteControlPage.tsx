@@ -15,23 +15,28 @@ const REPEAT_MS = 180 // how often to re-send while holding
 
 type Direction = 'forward' | 'backward' | 'left' | 'right' | 'stop'
 
-async function sendManual(direction: Direction, speed: number) {
+async function sendManual(vehicleId: string, direction: Direction, speed: number) {
   try {
     await fetch('/api/command/manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction, speed }),
+      body: JSON.stringify({ direction, speed, vehicle_id: vehicleId }),
     })
   } catch {
     // ignore, vehicle may be unreachable
   }
 }
 
-async function sendEmergencyStop() {
-  await fetch('/api/command/emergency_stop', { method: 'POST' })
+async function sendEmergencyStop(vehicleId: string) {
+  await fetch('/api/command/emergency_stop', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vehicle_id: vehicleId }),
+  })
 }
 
 interface DPadButtonProps {
+  vehicleId: string
   direction: Direction
   speed: number
   icon: React.ReactNode
@@ -39,24 +44,29 @@ interface DPadButtonProps {
   label: string
 }
 
-function DPadButton({ direction, speed, icon, className = '', label }: DPadButtonProps) {
+function DPadButton({ vehicleId, direction, speed, icon, className = '', label }: DPadButtonProps) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [active, setActive] = useState(false)
 
   const startSending = useCallback(() => {
     setActive(true)
-    sendManual(direction, speed)
-    intervalRef.current = setInterval(() => sendManual(direction, speed), REPEAT_MS)
-  }, [direction, speed])
+    sendManual(vehicleId, direction, speed)
+    intervalRef.current = setInterval(() => sendManual(vehicleId, direction, speed), REPEAT_MS)
+  }, [vehicleId, direction, speed])
 
   const stopSending = useCallback(() => {
     setActive(false)
     if (intervalRef.current) clearInterval(intervalRef.current)
-    sendManual('stop', 0)
-  }, [])
+    sendManual(vehicleId, 'stop', 0)
+  }, [vehicleId])
 
   // Clean up interval on unmount
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
+  useEffect(
+    () => () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    },
+    []
+  )
 
   return (
     <button
@@ -64,14 +74,18 @@ function DPadButton({ direction, speed, icon, className = '', label }: DPadButto
       onMouseDown={startSending}
       onMouseUp={stopSending}
       onMouseLeave={stopSending}
-      onTouchStart={(e) => { e.preventDefault(); startSending() }}
+      onTouchStart={(e) => {
+        e.preventDefault()
+        startSending()
+      }}
       onTouchEnd={stopSending}
       className={`
         select-none touch-none flex flex-col items-center justify-center gap-1
         rounded-2xl border-2 transition-all active:scale-95
-        ${active
-          ? 'bg-agc-blue border-agc-blue shadow-lg shadow-blue-900/50 scale-95'
-          : 'bg-agc-panel border-agc-border hover:border-agc-blue/50 hover:bg-agc-blue/10'
+        ${
+          active
+            ? 'bg-agc-blue border-agc-blue shadow-lg shadow-blue-900/50 scale-95'
+            : 'bg-agc-panel border-agc-border hover:border-agc-blue/50 hover:bg-agc-blue/10'
         }
         ${className}
       `}
@@ -89,7 +103,7 @@ const SPEED_PRESETS = [
 ]
 
 export function RemoteControlPage() {
-  const { telemetry, connected } = useVehicleStore()
+  const { telemetry, connected, activeVehicleId } = useVehicleStore()
   const [speed, setSpeed] = useState(0.5)
   const [activePreset, setActivePreset] = useState<number | null>(1)
 
@@ -103,14 +117,16 @@ export function RemoteControlPage() {
     setActivePreset(null)
   }
 
-  const battColor =
-    telemetry
-      ? telemetry.battery > 50 ? 'text-agc-green' : telemetry.battery > 20 ? 'text-agc-yellow' : 'text-agc-red'
-      : 'text-slate-600'
+  const battColor = telemetry
+    ? telemetry.battery > 50
+      ? 'text-agc-green'
+      : telemetry.battery > 20
+        ? 'text-agc-yellow'
+        : 'text-agc-red'
+    : 'text-slate-600'
 
   return (
     <div className="flex flex-col items-center px-4 py-8 gap-8 max-w-lg mx-auto">
-
       {/* Status strip */}
       <div className="w-full grid grid-cols-3 gap-3">
         <div className="bg-agc-panel border border-agc-border rounded-xl p-3 flex flex-col items-center gap-1">
@@ -121,11 +137,15 @@ export function RemoteControlPage() {
           <div className="text-xs text-slate-500">m/s</div>
         </div>
         <div className="bg-agc-panel border border-agc-border rounded-xl p-3 flex flex-col items-center gap-1">
-          <div className={`text-xs font-semibold uppercase ${
-            telemetry?.mode === 'autonomous' ? 'text-agc-green'
-            : telemetry?.mode === 'manual' ? 'text-agc-blue'
-            : 'text-slate-500'
-          }`}>
+          <div
+            className={`text-xs font-semibold uppercase ${
+              telemetry?.mode === 'autonomous'
+                ? 'text-agc-green'
+                : telemetry?.mode === 'manual'
+                  ? 'text-agc-blue'
+                  : 'text-slate-500'
+            }`}
+          >
             {telemetry?.mode ?? '--'}
           </div>
           <div className="text-xs text-slate-500 mt-1">mode</div>
@@ -149,7 +169,9 @@ export function RemoteControlPage() {
 
       {/* D-PAD */}
       <div className="w-full">
-        <div className="text-xs text-slate-500 uppercase tracking-widest text-center mb-4">Directional Control</div>
+        <div className="text-xs text-slate-500 uppercase tracking-widest text-center mb-4">
+          Directional Control
+        </div>
         <div
           className="grid gap-3 mx-auto"
           style={{
@@ -162,7 +184,10 @@ export function RemoteControlPage() {
           {/* Row 1 */}
           <div />
           <DPadButton
-            direction="forward" speed={speed} label="Forward"
+            vehicleId={activeVehicleId}
+            direction="forward"
+            speed={speed}
+            label="Forward"
             icon={<ArrowUp size={28} className="text-white" />}
             className="h-full"
           />
@@ -170,21 +195,30 @@ export function RemoteControlPage() {
 
           {/* Row 2 */}
           <DPadButton
-            direction="left" speed={speed} label="Left"
+            vehicleId={activeVehicleId}
+            direction="left"
+            speed={speed}
+            label="Left"
             icon={<ArrowLeft size={28} className="text-white" />}
             className="h-full"
           />
           {/* Center: STOP */}
           <button
-            onMouseDown={() => sendManual('stop', 0)}
-            onTouchStart={(e) => { e.preventDefault(); sendManual('stop', 0) }}
+            onMouseDown={() => sendManual(activeVehicleId, 'stop', 0)}
+            onTouchStart={(e) => {
+              e.preventDefault()
+              sendManual(activeVehicleId, 'stop', 0)
+            }}
             className="flex flex-col items-center justify-center gap-1 rounded-2xl border-2 border-slate-600 bg-agc-dark hover:border-slate-400 active:scale-95 transition-all select-none touch-none h-full"
           >
             <Square size={22} className="text-slate-400" />
             <span className="text-xs text-slate-500">Stop</span>
           </button>
           <DPadButton
-            direction="right" speed={speed} label="Right"
+            vehicleId={activeVehicleId}
+            direction="right"
+            speed={speed}
+            label="Right"
             icon={<ArrowRight size={28} className="text-white" />}
             className="h-full"
           />
@@ -192,7 +226,10 @@ export function RemoteControlPage() {
           {/* Row 3 */}
           <div />
           <DPadButton
-            direction="backward" speed={speed} label="Reverse"
+            vehicleId={activeVehicleId}
+            direction="backward"
+            speed={speed}
+            label="Reverse"
             icon={<ArrowDown size={28} className="text-white" />}
             className="h-full"
           />
@@ -225,7 +262,10 @@ export function RemoteControlPage() {
         {/* Slider */}
         <div>
           <input
-            type="range" min="0.1" max="1" step="0.05"
+            type="range"
+            min="0.1"
+            max="1"
+            step="0.05"
             value={speed}
             onChange={onSliderChange}
             className="w-full accent-agc-blue"
@@ -239,7 +279,7 @@ export function RemoteControlPage() {
 
       {/* Emergency stop */}
       <button
-        onClick={sendEmergencyStop}
+        onClick={() => sendEmergencyStop(activeVehicleId)}
         className="w-full py-5 rounded-2xl bg-agc-red hover:bg-red-600 active:scale-95 transition-all font-bold text-xl text-white flex items-center justify-center gap-3 shadow-xl shadow-red-900/40"
       >
         <AlertTriangle size={24} />
@@ -247,7 +287,8 @@ export function RemoteControlPage() {
       </button>
 
       <div className="text-xs text-slate-600 text-center pb-4">
-        Hold directional buttons to move continuously.<br />
+        Hold directional buttons to move continuously.
+        <br />
         Commands are sent via MQTT every {REPEAT_MS}ms.
       </div>
     </div>

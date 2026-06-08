@@ -1,14 +1,4 @@
-import {
-  Circle,
-  CircleStop,
-  Clock,
-  Eye,
-  EyeOff,
-  Map,
-  RefreshCw,
-  Route,
-  Trash2,
-} from 'lucide-react'
+import { Circle, CircleStop, Clock, Eye, EyeOff, Map, RefreshCw, Route, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import {
   CartesianGrid,
@@ -35,8 +25,10 @@ function formatDuration(start: string, end: string | null): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString([], {
-    month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -61,15 +53,38 @@ function RouteChart({ detail }: RouteChartProps) {
         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
         <XAxis dataKey="i" tick={false} />
         <YAxis yAxisId="speed" domain={[0, 6]} tick={{ fill: '#64748b', fontSize: 10 }} />
-        <YAxis yAxisId="battery" orientation="right" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} />
+        <YAxis
+          yAxisId="battery"
+          orientation="right"
+          domain={[0, 100]}
+          tick={{ fill: '#64748b', fontSize: 10 }}
+        />
         <Tooltip
           contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
           labelStyle={{ color: '#94a3b8', fontSize: 10 }}
           itemStyle={{ fontSize: 11 }}
         />
         <Legend wrapperStyle={{ fontSize: 10, color: '#94a3b8' }} />
-        <Line yAxisId="speed" type="monotone" dataKey="speed" stroke="#3b82f6" dot={false} strokeWidth={1.5} name="Speed (m/s)" connectNulls />
-        <Line yAxisId="battery" type="monotone" dataKey="battery" stroke="#22c55e" dot={false} strokeWidth={1.5} name="Battery (%)" connectNulls />
+        <Line
+          yAxisId="speed"
+          type="monotone"
+          dataKey="speed"
+          stroke="#3b82f6"
+          dot={false}
+          strokeWidth={1.5}
+          name="Speed (m/s)"
+          connectNulls
+        />
+        <Line
+          yAxisId="battery"
+          type="monotone"
+          dataKey="battery"
+          stroke="#22c55e"
+          dot={false}
+          strokeWidth={1.5}
+          name="Battery (%)"
+          connectNulls
+        />
       </LineChart>
     </ResponsiveContainer>
   )
@@ -93,7 +108,9 @@ export function RoutesPanel() {
     }
   }, [])
 
-  useEffect(() => { fetchRoutes() }, [fetchRoutes])
+  useEffect(() => {
+    fetchRoutes()
+  }, [fetchRoutes])
 
   async function startRecording() {
     await fetch('/api/routes/start', {
@@ -141,7 +158,10 @@ export function RoutesPanel() {
         <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
           <Route size={14} /> Routes
         </h2>
-        <button onClick={fetchRoutes} className="text-slate-500 hover:text-slate-300 transition-colors">
+        <button
+          onClick={fetchRoutes}
+          className="text-slate-500 hover:text-slate-300 transition-colors"
+        >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -211,7 +231,9 @@ export function RoutesPanel() {
                   onClick={() => viewRoute(r.id)}
                   title={selectedId === r.id ? 'Hide route' : 'Show on map'}
                   className={`p-1 rounded transition-colors ${
-                    selectedId === r.id ? 'text-amber-400 hover:text-amber-300' : 'text-slate-500 hover:text-slate-300'
+                    selectedId === r.id
+                      ? 'text-amber-400 hover:text-amber-300'
+                      : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
                   {selectedId === r.id ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -245,7 +267,10 @@ export function RoutesPanel() {
 
       {overlayRoute && !selectedDetail && (
         <button
-          onClick={() => { setOverlayRoute(null); setSelectedId(null) }}
+          onClick={() => {
+            setOverlayRoute(null)
+            setSelectedId(null)
+          }}
           className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors"
         >
           <EyeOff size={11} /> Clear map overlay

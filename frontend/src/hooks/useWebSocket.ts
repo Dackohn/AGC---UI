@@ -6,8 +6,23 @@ const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wind
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { setTelemetry, setSensors, addAlert, setStatus, setConnected, setState, setRecording } =
-    useVehicleStore()
+  const {
+    setTelemetry,
+    setSensors,
+    addAlert,
+    setStatus,
+    setConnected,
+    setState,
+    setRecording,
+    setRegisteredVehicles,
+    activeVehicleId,
+  } = useVehicleStore()
+
+  // Keep a ref so the long-lived socket handler always sees the latest selection
+  const activeVehicleIdRef = useRef(activeVehicleId)
+  useEffect(() => {
+    activeVehicleIdRef.current = activeVehicleId
+  }, [activeVehicleId])
 
   useEffect(() => {
     function connect() {
@@ -19,24 +34,33 @@ export function useWebSocket() {
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data)
+          // Per-vehicle messages carry a `vehicle_id` — only apply ones for the selected vehicle
+          const forActiveVehicle =
+            msg.vehicle_id === undefined || msg.vehicle_id === activeVehicleIdRef.current
+
           switch (msg.type) {
+            case 'vehicles':
+              setRegisteredVehicles(msg.data)
+              break
             case 'state':
-              setState(msg.data)
-              if (msg.data.recording !== undefined) {
-                setRecording(msg.data.recording, null)
+              if (forActiveVehicle) {
+                setState(msg.data)
+                if (msg.data.recording !== undefined) {
+                  setRecording(msg.data.recording, null)
+                }
               }
               break
             case 'telemetry':
-              setTelemetry(msg.data)
+              if (forActiveVehicle) setTelemetry(msg.data)
               break
             case 'sensors':
-              setSensors(msg.data)
+              if (forActiveVehicle) setSensors(msg.data)
               break
             case 'alert':
-              addAlert(msg.data)
+              if (forActiveVehicle) addAlert(msg.data)
               break
             case 'status':
-              setStatus(msg.data)
+              if (forActiveVehicle) setStatus(msg.data)
               break
             case 'recording':
               setRecording(msg.data.active, msg.data.session_id ?? null)
@@ -61,5 +85,32 @@ export function useWebSocket() {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       wsRef.current?.close()
     }
-  }, [setTelemetry, setSensors, addAlert, setStatus, setConnected, setState, setRecording])
+  }, [
+    setTelemetry,
+    setSensors,
+    addAlert,
+    setStatus,
+    setConnected,
+    setState,
+    setRecording,
+    setRegisteredVehicles,
+  ])
+
+  // Pull the full snapshot for the selected vehicle whenever it changes
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/state?vehicle_id=${encodeURIComponent(activeVehicleId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return
+        setState(data)
+        if (data.recording !== undefined) setRecording(data.recording, null)
+      })
+      .catch(() => {
+        /* ignore — WS will catch up once connected */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeVehicleId, setState, setRecording])
 }

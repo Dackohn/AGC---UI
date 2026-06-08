@@ -4,6 +4,7 @@ Publishes realistic MQTT telemetry for the AGC dashboard without real hardware.
 Simulates: GPS movement along a patrol route, ultrasonic sensors, battery drain,
 mode changes, obstacle events, and alerts.
 """
+
 import json
 import math
 import os
@@ -27,6 +28,7 @@ WAYPOINTS = [
     (46.8750, 29.2300),
 ]
 
+
 def connect_mqtt() -> mqtt.Client:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     if USERNAME:
@@ -42,14 +44,17 @@ def connect_mqtt() -> mqtt.Client:
             print(f"[SIM] Waiting for broker... {e}")
             time.sleep(3)
 
+
 def interpolate(a: tuple, b: tuple, t: float) -> tuple:
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+
 
 def heading_between(a: tuple, b: tuple) -> float:
     dlat = b[0] - a[0]
     dlon = b[1] - a[1]
     angle = math.degrees(math.atan2(dlon, dlat))
     return angle % 360
+
 
 def simulate():
     client = connect_mqtt()
@@ -64,10 +69,10 @@ def simulate():
     obstacle_countdown = 0
     tick = 0
 
-    client.publish("agc/vehicle/status", json.dumps({
-        "state": "active",
-        "message": "Vehicle simulator started"
-    }))
+    client.publish(
+        "agc/vehicle/status",
+        json.dumps({"state": "active", "message": "Vehicle simulator started"}),
+    )
 
     while True:
         # Move along waypoints
@@ -94,11 +99,16 @@ def simulate():
 
         if random.random() < 0.005:  # 0.5% chance per tick
             obstacle_countdown = 15
-            client.publish("agc/vehicle/alerts", json.dumps({
-                "type": "obstacle",
-                "message": "Obstacle detected — vehicle stopped",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }))
+            client.publish(
+                "agc/vehicle/alerts",
+                json.dumps(
+                    {
+                        "type": "obstacle",
+                        "message": "Obstacle detected — vehicle stopped",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                ),
+            )
 
         # Sensor readings (cm) — simulate front obstacles sometimes
         front = [random.randint(150, 400) for _ in range(4)]
@@ -124,18 +134,28 @@ def simulate():
 
         # Periodic alerts
         if tick % 300 == 0 and tick > 0:
-            client.publish("agc/vehicle/alerts", json.dumps({
-                "type": "info",
-                "message": f"Battery at {battery:.0f}%",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }))
+            client.publish(
+                "agc/vehicle/alerts",
+                json.dumps(
+                    {
+                        "type": "info",
+                        "message": f"Battery at {battery:.0f}%",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                ),
+            )
 
         if battery < 20 and tick % 100 == 0:
-            client.publish("agc/vehicle/alerts", json.dumps({
-                "type": "warning",
-                "message": "Low battery — consider returning home",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }))
+            client.publish(
+                "agc/vehicle/alerts",
+                json.dumps(
+                    {
+                        "type": "warning",
+                        "message": "Low battery — consider returning home",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                ),
+            )
 
         # Advance along route
         t += step
@@ -145,6 +165,7 @@ def simulate():
 
         tick += 1
         time.sleep(0.5)
+
 
 if __name__ == "__main__":
     simulate()

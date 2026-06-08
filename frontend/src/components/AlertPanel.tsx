@@ -4,25 +4,36 @@ import type { Alert } from '../types/vehicle'
 
 function AlertIcon({ type }: { type: Alert['type'] }) {
   switch (type) {
-    case 'obstacle': return <AlertTriangle size={14} className="text-agc-red shrink-0" />
-    case 'warning': return <AlertCircle size={14} className="text-agc-yellow shrink-0" />
-    case 'error': return <X size={14} className="text-agc-red shrink-0" />
-    default: return <Info size={14} className="text-agc-blue shrink-0" />
+    case 'obstacle':
+      return <AlertTriangle size={14} className="text-agc-red shrink-0" />
+    case 'warning':
+      return <AlertCircle size={14} className="text-agc-yellow shrink-0" />
+    case 'error':
+      return <X size={14} className="text-agc-red shrink-0" />
+    default:
+      return <Info size={14} className="text-agc-blue shrink-0" />
   }
 }
 
 function alertBg(type: Alert['type']): string {
   switch (type) {
     case 'obstacle':
-    case 'error': return 'border-l-agc-red bg-red-950/20'
-    case 'warning': return 'border-l-agc-yellow bg-yellow-950/20'
-    default: return 'border-l-agc-blue bg-blue-950/10'
+    case 'error':
+      return 'border-l-agc-red bg-red-950/20'
+    case 'warning':
+      return 'border-l-agc-yellow bg-yellow-950/20'
+    default:
+      return 'border-l-agc-blue bg-blue-950/10'
   }
 }
 
 function formatTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return new Date(iso).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
   } catch {
     return iso
   }
@@ -55,7 +66,9 @@ export function AlertPanel() {
             >
               <AlertIcon type={alert.type} />
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-slate-300 leading-snug break-words">{alert.message}</div>
+                <div className="text-xs text-slate-300 leading-snug break-words">
+                  {alert.message}
+                </div>
                 <div className="text-xs text-slate-600 mt-0.5">{formatTime(alert.timestamp)}</div>
               </div>
             </div>

@@ -7,6 +7,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8000',
       '/ws': { target: 'ws://localhost:8000', ws: true },
+      '/docs': 'http://localhost:8000',
+      '/redoc': 'http://localhost:8000',
+      '/openapi.json': 'http://localhost:8000',
     },
   },
 })

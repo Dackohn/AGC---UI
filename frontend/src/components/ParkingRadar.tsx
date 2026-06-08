@@ -45,19 +45,66 @@ export function ParkingRadar() {
 
   return (
     <div className="bg-agc-panel border border-agc-border rounded-xl p-4 space-y-4">
-      <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Proximity Sensors</h2>
+      <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+        Proximity Sensors
+      </h2>
 
       {/* Vehicle outline SVG */}
       <div className="flex justify-center">
         <svg width="160" height="240" viewBox="0 0 160 240">
           {/* Vehicle body */}
-          <rect x="35" y="60" width="90" height="120" rx="12" fill="#1e293b" stroke="#334155" strokeWidth="2" />
+          <rect
+            x="35"
+            y="60"
+            width="90"
+            height="120"
+            rx="12"
+            fill="#1e293b"
+            stroke="#334155"
+            strokeWidth="2"
+          />
           {/* Front wheel suggestion */}
-          <rect x="28" y="65" width="12" height="28" rx="4" fill="#0f172a" stroke="#475569" strokeWidth="1" />
-          <rect x="120" y="65" width="12" height="28" rx="4" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+          <rect
+            x="28"
+            y="65"
+            width="12"
+            height="28"
+            rx="4"
+            fill="#0f172a"
+            stroke="#475569"
+            strokeWidth="1"
+          />
+          <rect
+            x="120"
+            y="65"
+            width="12"
+            height="28"
+            rx="4"
+            fill="#0f172a"
+            stroke="#475569"
+            strokeWidth="1"
+          />
           {/* Rear wheel */}
-          <rect x="28" y="148" width="12" height="28" rx="4" fill="#0f172a" stroke="#475569" strokeWidth="1" />
-          <rect x="120" y="148" width="12" height="28" rx="4" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+          <rect
+            x="28"
+            y="148"
+            width="12"
+            height="28"
+            rx="4"
+            fill="#0f172a"
+            stroke="#475569"
+            strokeWidth="1"
+          />
+          <rect
+            x="120"
+            y="148"
+            width="12"
+            height="28"
+            rx="4"
+            fill="#0f172a"
+            stroke="#475569"
+            strokeWidth="1"
+          />
           {/* Direction arrow */}
           <polygon points="80,52 72,65 88,65" fill="#3b82f6" opacity="0.8" />
 
@@ -88,8 +135,12 @@ export function ParkingRadar() {
           })}
 
           {/* Labels */}
-          <text x="80" y="30" textAnchor="middle" fill="#64748b" fontSize="10">FRONT</text>
-          <text x="80" y="222" textAnchor="middle" fill="#64748b" fontSize="10">REAR</text>
+          <text x="80" y="30" textAnchor="middle" fill="#64748b" fontSize="10">
+            FRONT
+          </text>
+          <text x="80" y="222" textAnchor="middle" fill="#64748b" fontSize="10">
+            REAR
+          </text>
         </svg>
       </div>
 
@@ -115,9 +166,16 @@ export function ParkingRadar() {
 
       {/* Legend */}
       <div className="flex gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-agc-green inline-block" /> Clear (&gt;{WARN_CM}cm)</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-agc-yellow inline-block" /> Warn</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-agc-red inline-block" /> Stop (&lt;{DANGER_CM}cm)</span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-agc-green inline-block" /> Clear (&gt;{WARN_CM}
+          cm)
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-agc-yellow inline-block" /> Warn
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-agc-red inline-block" /> Stop (&lt;{DANGER_CM}cm)
+        </span>
       </div>
     </div>
   )

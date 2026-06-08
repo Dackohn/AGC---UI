@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useVehicleStore } from '../store/vehicleStore'
+import { VehiclesDropdown } from './VehiclesDropdown'
 
 const NAV = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, exact: true },
@@ -17,12 +18,16 @@ const NAV = [
   { to: '/routes', label: 'Routes', icon: Route, exact: false },
 ]
 
-async function apiPost(path: string) {
-  await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+async function apiPost(path: string, body?: unknown) {
+  await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
 }
 
 export function Layout() {
-  const { connected, telemetry, recording } = useVehicleStore()
+  const { connected, telemetry, recording, activeVehicleId } = useVehicleStore()
 
   return (
     <div className="min-h-screen bg-agc-dark text-white flex flex-col">
@@ -61,8 +66,9 @@ export function Layout() {
             ))}
           </nav>
 
-          {/* Right side: status + e-stop */}
+          {/* Right side: vehicle selector + status + e-stop */}
           <div className="flex items-center gap-3 ml-4 shrink-0">
+            <VehiclesDropdown />
             {recording && (
               <span className="hidden sm:flex items-center gap-1.5 text-xs text-agc-red font-medium animate-pulse">
                 <span className="w-2 h-2 rounded-full bg-agc-red inline-block" />
@@ -70,9 +76,17 @@ export function Layout() {
               </span>
             )}
             <div className="hidden sm:flex items-center gap-1.5 text-xs">
-              {connected
-                ? <><Wifi size={12} className="text-agc-green" /><span className="text-agc-green">Live</span></>
-                : <><WifiOff size={12} className="text-agc-red" /><span className="text-agc-red">Offline</span></>}
+              {connected ? (
+                <>
+                  <Wifi size={12} className="text-agc-green" />
+                  <span className="text-agc-green">Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={12} className="text-agc-red" />
+                  <span className="text-agc-red">Offline</span>
+                </>
+              )}
             </div>
             {telemetry && (
               <span className="hidden md:block text-xs text-slate-500 font-mono">
@@ -80,7 +94,9 @@ export function Layout() {
               </span>
             )}
             <button
-              onClick={() => apiPost('/api/command/emergency_stop')}
+              onClick={() =>
+                apiPost('/api/command/emergency_stop', { vehicle_id: activeVehicleId })
+              }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-agc-red hover:bg-red-600 active:scale-95 transition-all text-xs font-bold text-white"
             >
               <AlertTriangle size={12} />

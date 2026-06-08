@@ -13,7 +13,11 @@ import { useVehicleStore } from '../store/vehicleStore'
 
 function formatLabel(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return new Date(iso).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
   } catch {
     return ''
   }
@@ -46,7 +50,12 @@ export function TelemetryChart() {
               interval="preserveStartEnd"
             />
             <YAxis yAxisId="speed" domain={[0, 6]} tick={{ fill: '#64748b', fontSize: 10 }} />
-            <YAxis yAxisId="battery" orientation="right" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} />
+            <YAxis
+              yAxisId="battery"
+              orientation="right"
+              domain={[0, 100]}
+              tick={{ fill: '#64748b', fontSize: 10 }}
+            />
             <Tooltip
               contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
               labelStyle={{ color: '#94a3b8', fontSize: 11 }}

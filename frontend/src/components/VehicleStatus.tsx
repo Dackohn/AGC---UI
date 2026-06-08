@@ -11,7 +11,9 @@ function StatusBadge({ mode }: { mode: string }) {
   }
   const cls = colors[mode] ?? colors.unknown
   return (
-    <span className={`px-2 py-0.5 rounded border text-xs font-semibold uppercase tracking-wide ${cls}`}>
+    <span
+      className={`px-2 py-0.5 rounded border text-xs font-semibold uppercase tracking-wide ${cls}`}
+    >
       {mode}
     </span>
   )
@@ -22,7 +24,10 @@ function BatteryBar({ pct }: { pct: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden">
-        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full ${color} transition-all duration-500`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
       <span className="text-xs font-mono w-10 text-right">{pct.toFixed(0)}%</span>
     </div>
@@ -39,9 +44,11 @@ export function VehicleStatus() {
           <Activity size={14} /> Vehicle Status
         </h2>
         <div className="flex items-center gap-1.5">
-          {connected
-            ? <Wifi size={14} className="text-agc-green" />
-            : <WifiOff size={14} className="text-agc-red" />}
+          {connected ? (
+            <Wifi size={14} className="text-agc-green" />
+          ) : (
+            <WifiOff size={14} className="text-agc-red" />
+          )}
           <span className={`text-xs ${connected ? 'text-agc-green' : 'text-agc-red'}`}>
             {connected ? 'Connected' : 'Offline'}
           </span>
@@ -57,20 +64,32 @@ export function VehicleStatus() {
       {telemetry ? (
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-agc-dark rounded-lg p-3 space-y-1">
-            <div className="text-xs text-slate-500 flex items-center gap-1"><Gauge size={10} /> Speed</div>
-            <div className="text-xl font-mono font-bold text-white">{telemetry.speed.toFixed(1)}</div>
+            <div className="text-xs text-slate-500 flex items-center gap-1">
+              <Gauge size={10} /> Speed
+            </div>
+            <div className="text-xl font-mono font-bold text-white">
+              {telemetry.speed.toFixed(1)}
+            </div>
             <div className="text-xs text-slate-500">m/s</div>
           </div>
 
           <div className="bg-agc-dark rounded-lg p-3 space-y-1">
-            <div className="text-xs text-slate-500 flex items-center gap-1"><Compass size={10} /> Heading</div>
-            <div className="text-xl font-mono font-bold text-white">{telemetry.heading.toFixed(0)}°</div>
+            <div className="text-xs text-slate-500 flex items-center gap-1">
+              <Compass size={10} /> Heading
+            </div>
+            <div className="text-xl font-mono font-bold text-white">
+              {telemetry.heading.toFixed(0)}°
+            </div>
             <div className="text-xs text-slate-500">degrees</div>
           </div>
 
           <div className="bg-agc-dark rounded-lg p-3 space-y-1">
-            <div className="text-xs text-slate-500 flex items-center gap-1"><MapPin size={10} /> GPS Accuracy</div>
-            <div className="text-xl font-mono font-bold text-agc-green">{(telemetry.gps_accuracy * 100).toFixed(0)}</div>
+            <div className="text-xs text-slate-500 flex items-center gap-1">
+              <MapPin size={10} /> GPS Accuracy
+            </div>
+            <div className="text-xl font-mono font-bold text-agc-green">
+              {(telemetry.gps_accuracy * 100).toFixed(0)}
+            </div>
             <div className="text-xs text-slate-500">cm (RTK)</div>
           </div>
 
@@ -80,7 +99,9 @@ export function VehicleStatus() {
           </div>
 
           <div className="col-span-2 bg-agc-dark rounded-lg p-3 space-y-2">
-            <div className="text-xs text-slate-500 flex items-center gap-1"><Battery size={10} /> Battery</div>
+            <div className="text-xs text-slate-500 flex items-center gap-1">
+              <Battery size={10} /> Battery
+            </div>
             <BatteryBar pct={telemetry.battery} />
           </div>
 

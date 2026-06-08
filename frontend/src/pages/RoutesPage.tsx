@@ -15,7 +15,11 @@ export function RoutesPage() {
             <span className="w-5 h-0.5 bg-blue-500 inline-block rounded" /> Live trail
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-0.5 bg-amber-400 inline-block rounded" style={{ borderStyle: 'dashed' }} /> Saved route overlay
+            <span
+              className="w-5 h-0.5 bg-amber-400 inline-block rounded"
+              style={{ borderStyle: 'dashed' }}
+            />{' '}
+            Saved route overlay
           </span>
         </div>
       </div>
