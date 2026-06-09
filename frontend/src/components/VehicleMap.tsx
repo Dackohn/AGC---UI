@@ -89,7 +89,8 @@ export function VehicleMap({ waypoints, onAddWaypoint }: Props) {
     registeredVehicles.find((v) => v.vehicle_id === activeVehicleId)?.color ?? '#3b82f6'
   const vehicleIcon = useMemo(() => makeVehicleIcon(vehicleColor), [vehicleColor])
 
-  const center: [number, number] = telemetry ? [telemetry.lat, telemetry.lon] : [46.875, 29.23]
+  const hasFix = !!telemetry && Number.isFinite(telemetry.lat) && Number.isFinite(telemetry.lon)
+  const center: [number, number] = hasFix ? [telemetry!.lat, telemetry!.lon] : [46.875, 29.23]
 
   return (
     <div
@@ -138,10 +139,10 @@ export function VehicleMap({ waypoints, onAddWaypoint }: Props) {
         ))}
 
         {/* Vehicle marker */}
-        {telemetry && (
+        {hasFix && (
           <>
-            <AutoCenter lat={telemetry.lat} lon={telemetry.lon} />
-            <Marker position={[telemetry.lat, telemetry.lon]} icon={vehicleIcon} />
+            <AutoCenter lat={telemetry!.lat} lon={telemetry!.lon} />
+            <Marker position={[telemetry!.lat, telemetry!.lon]} icon={vehicleIcon} />
           </>
         )}
       </MapContainer>

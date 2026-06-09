@@ -66,14 +66,20 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
   registeredVehicles: [],
   activeVehicleId: loadActiveVehicleId(),
 
-  setTelemetry: (t) =>
+  setTelemetry: (t) => {
+    // Ignore payloads that don't carry real GPS-grade telemetry (e.g. a vehicle
+    // agent publishing raw motor-debug data with a different schema) — showing
+    // them would crash the dashboard's numeric displays (toFixed on undefined).
+    if (typeof t.lat !== 'number' || typeof t.lon !== 'number') return
+
     set((prev) => ({
       telemetry: t,
       history: [
         ...prev.history.slice(-119),
         { timestamp: new Date().toISOString(), speed: t.speed, battery: t.battery },
       ],
-    })),
+    }))
+  },
 
   setSensors: (s) => set({ sensors: s }),
 
@@ -108,14 +114,19 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
     })
   },
 
-  setState: ({ telemetry, sensors, alerts, status, recording }) =>
+  setState: ({ telemetry, sensors, alerts, status, recording }) => {
+    // Backend sends `{}` (not null) before the vehicle's first telemetry message —
+    // only treat it as real telemetry once it actually carries coordinates.
+    const hasTelemetry =
+      !!telemetry && typeof telemetry.lat === 'number' && typeof telemetry.lon === 'number'
+
     set((prev) => ({
-      ...(telemetry ? { telemetry } : {}),
+      ...(hasTelemetry ? { telemetry } : {}),
       ...(sensors ? { sensors } : {}),
       ...(alerts ? { alerts } : {}),
       ...(status ? { status } : {}),
       ...(recording !== undefined ? { recording } : {}),
-      history: telemetry
+      history: hasTelemetry
         ? [
             ...prev.history.slice(-119),
             {
@@ -125,5 +136,6 @@ export const useVehicleStore = create<VehicleStore>((set) => ({
             },
           ]
         : prev.history,
-    })),
+    }))
+  },
 }))
