@@ -1,7 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useVehicleStore } from '../store/vehicleStore'
+import { useAuthStore } from '../store/authStore'
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
+function buildWsUrl(): string {
+  const token = useAuthStore.getState().token
+  const base = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base
+}
 
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null)
@@ -26,7 +31,7 @@ export function useWebSocket() {
 
   useEffect(() => {
     function connect() {
-      const ws = new WebSocket(WS_URL)
+      const ws = new WebSocket(buildWsUrl())
       wsRef.current = ws
 
       ws.onopen = () => setConnected(true)
@@ -71,8 +76,13 @@ export function useWebSocket() {
         }
       }
 
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         setConnected(false)
+        // 4401 = token rejected — don't retry, force re-auth
+        if (ev.code === 4401) {
+          useAuthStore.getState().logout()
+          return
+        }
         reconnectTimer.current = setTimeout(connect, 3000)
       }
 

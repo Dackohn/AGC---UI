@@ -86,9 +86,13 @@ export function LandingPage() {
 
   const modeColor: Record<string, string> = {
     autonomous: 'text-agc-green',
-    stopped: 'text-agc-yellow',
-    manual: 'text-agc-blue',
-    emergency: 'text-agc-red',
+    guided:     'text-agc-green',
+    auto:       'text-agc-green',
+    stopped:    'text-agc-yellow',
+    hold:       'text-agc-yellow',
+    manual:     'text-agc-blue',
+    rtl:        'text-agc-blue',
+    emergency:  'text-agc-red',
   }
 
   const recentAlerts = alerts.slice(0, 4)
@@ -158,13 +162,23 @@ export function LandingPage() {
           value={telemetry ? telemetry.mode : '--'}
           color={telemetry ? (modeColor[telemetry.mode] ?? 'text-white') : 'text-slate-500'}
         />
-        <MetricCard
-          icon={MapPin}
-          label="GPS Accuracy"
-          value={telemetry ? `${(telemetry.gps_accuracy * 100).toFixed(0)}` : '--'}
-          unit="cm"
-          color="text-agc-green"
-        />
+        {telemetry?.alt != null ? (
+          <MetricCard
+            icon={MapPin}
+            label="Altitude"
+            value={telemetry.alt.toFixed(1)}
+            unit="m"
+            color="text-agc-blue"
+          />
+        ) : (
+          <MetricCard
+            icon={MapPin}
+            label="GPS Accuracy"
+            value={telemetry?.gps_accuracy != null ? `${((telemetry.gps_accuracy ?? 0) * 100).toFixed(0)}` : '--'}
+            unit="cm"
+            color="text-agc-green"
+          />
+        )}
       </div>
 
       {/* Quick nav + system status */}

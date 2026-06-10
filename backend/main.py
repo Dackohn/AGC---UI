@@ -3,13 +3,15 @@ import json
 import logging
 import math
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
 import paho.mqtt.client as mqtt
 from databases import Database
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -25,6 +27,45 @@ MQTT_USERNAME = os.environ.get("MQTT_USERNAME", "")
 MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 database = Database(DATABASE_URL)
+
+# ------- Auth -------
+# In-memory token store; cleared on restart (intentional — forces re-auth after deploy)
+active_tokens: set[str] = set()
+
+
+def _valid_token(token: str | None) -> bool:
+    return bool(token and token in active_tokens)
+
+
+def _test_mqtt(broker: str, port: int, username: str, password: str) -> bool:
+    """Blocking MQTT connection test; run in a thread pool."""
+    connected: list[bool] = [False]
+    failed: list[bool] = [False]
+
+    def on_connect(client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
+            connected[0] = True
+        else:
+            failed[0] = True
+
+    test_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    test_client.on_connect = on_connect
+    if username:
+        test_client.username_pw_set(username, password)
+    if port == 8883:
+        test_client.tls_set()
+    try:
+        test_client.connect(broker, port, keepalive=5)
+        test_client.loop_start()
+        deadline = time.time() + 8
+        while time.time() < deadline and not connected[0] and not failed[0]:
+            time.sleep(0.05)
+        test_client.loop_stop()
+        test_client.disconnect()
+        return connected[0]
+    except Exception:
+        return False
+
 
 # ------- WebSocket connection manager -------
 
@@ -118,6 +159,11 @@ def on_mqtt_message(client, userdata, msg):
     vs["last_seen"] = datetime.now(timezone.utc).isoformat()
 
     if msg_type == "telemetry":
+        # Normalize agent_pix field names to frontend-expected names
+        if "groundspeed" in payload and "speed" not in payload:
+            payload["speed"] = payload["groundspeed"]
+        if "battery_level" in payload and "battery" not in payload:
+            payload["battery"] = payload["battery_level"]
         vs["telemetry"] = payload
         asyncio.run_coroutine_threadsafe(_handle_telemetry(vehicle_id, payload), loop)
 
@@ -600,11 +646,42 @@ async def remove_vehicle(vehicle_id: str):
     return {"status": "removed"}
 
 
+# ------- Auth endpoints -------
+
+
+class ConnectPayload(BaseModel):
+    broker: str
+    port: int = 8883
+    username: str = ""
+    password: str = ""
+
+
+@app.post("/api/auth/connect")
+async def auth_connect(payload: ConnectPayload):
+    ok = await asyncio.to_thread(
+        _test_mqtt, payload.broker, payload.port, payload.username, payload.password
+    )
+    if not ok:
+        raise HTTPException(status_code=401, detail="MQTT authentication failed")
+    token = str(uuid.uuid4())
+    active_tokens.add(token)
+    return {"token": token}
+
+
+@app.post("/api/auth/logout")
+async def auth_logout(token: str = ""):
+    active_tokens.discard(token)
+    return {"status": "ok"}
+
+
 # ------- WebSocket -------
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = ""):
+    if not _valid_token(token):
+        await websocket.close(code=4401)
+        return
     await manager.connect(websocket)
 
     # Send registered vehicles list

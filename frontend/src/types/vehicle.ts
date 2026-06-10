@@ -1,11 +1,18 @@
 export interface Telemetry {
   lat: number
   lon: number
-  speed: number
-  battery: number
+  speed: number           // normalized from groundspeed
+  battery: number         // normalized from battery_level (0–100 %)
   mode: string
   heading: number
-  gps_accuracy: number
+  // agent_pix fields
+  alt?: number
+  airspeed?: number
+  battery_voltage?: number
+  armed?: boolean
+  ts?: number
+  // legacy simulator field
+  gps_accuracy?: number
 }
 
 export interface SensorData {

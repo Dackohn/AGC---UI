@@ -12,6 +12,7 @@ services:
     networks:
       - agc-net
     restart: unless-stopped
+    mem_limit: 128m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agc -d agcdb"]
       interval: 10s
@@ -24,39 +25,25 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://agc:agcpassword@postgres:5432/agcdb
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - agc-net
     restart: unless-stopped
+    mem_limit: 256m
 
   frontend:
     build: ./frontend
     container_name: agc-frontend
     ports:
-      - "3000:80"
+      - "127.0.0.1:9003:80"
     depends_on:
       - backend
     networks:
       - agc-net
     restart: unless-stopped
-
-  simulator:
-    build: ./simulator
-    container_name: agc-simulator
-    environment:
-      MQTT_BROKER: a19bbaf9d8a74507a6d0a3ce8d4ddbad.s1.eu.hivemq.cloud
-      MQTT_PORT: "8883"
-      MQTT_USERNAME: GolfCart123
-      MQTT_PASSWORD: IOTgc1234
-    depends_on:
-      - backend
-    networks:
-      - agc-net
-    restart: unless-stopped
+    mem_limit: 64m
 
 volumes:
   postgres-data:
