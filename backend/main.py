@@ -411,8 +411,10 @@ class MissionPayload(BaseModel):
 
 
 class ManualPayload(BaseModel):
-    direction: str
-    speed: float = 0.5
+    direction: str = "stop"
+    speed: float = 0.0
+    throttle: float | None = None   # analog joystick: -1..1
+    steering: float | None = None   # analog joystick: -1..1
     vehicle_id: str = "vehicle"
 
 
@@ -446,7 +448,13 @@ async def go_home(payload: EmergencyPayload = EmergencyPayload()):
 
 @app.post("/api/command/manual")
 async def manual_control(payload: ManualPayload):
-    data = {"direction": payload.direction, "speed": payload.speed}
+    if payload.throttle is not None or payload.steering is not None:
+        data = {
+            "throttle": payload.throttle if payload.throttle is not None else 0.0,
+            "steering": payload.steering if payload.steering is not None else 0.0,
+        }
+    else:
+        data = {"direction": payload.direction, "speed": payload.speed}
     mqtt_client.publish(f"agc/{payload.vehicle_id}/command/manual", json.dumps(data))
     return {"status": "sent"}
 
@@ -680,6 +688,7 @@ async def auth_logout(token: str = ""):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = ""):
     if not _valid_token(token):
+        await websocket.accept()
         await websocket.close(code=4401)
         return
     await manager.connect(websocket)
@@ -712,7 +721,15 @@ async def websocket_endpoint(websocket: WebSocket, token: str = ""):
 
     try:
         while True:
-            await websocket.receive_text()
+            text = await websocket.receive_text()
+            try:
+                msg = json.loads(text)
+                if msg.get("type") == "manual" and mqtt_client:
+                    vehicle_id = msg.get("vehicle_id", "vehicle")
+                    data = {k: v for k, v in msg.items() if k not in ("type", "vehicle_id")}
+                    mqtt_client.publish(f"agc/{vehicle_id}/command/manual", json.dumps(data))
+            except Exception:
+                pass
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

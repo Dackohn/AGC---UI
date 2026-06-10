@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react'
 import { useVehicleStore } from '../store/vehicleStore'
 import { useAuthStore } from '../store/authStore'
 
+// Module-level singleton so any component can send commands without prop drilling
+export const wsCommandRef: { current: WebSocket | null } = { current: null }
+
 function buildWsUrl(): string {
   const token = useAuthStore.getState().token
   const base = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
@@ -34,7 +37,7 @@ export function useWebSocket() {
       const ws = new WebSocket(buildWsUrl())
       wsRef.current = ws
 
-      ws.onopen = () => setConnected(true)
+      ws.onopen = () => { wsCommandRef.current = ws; setConnected(true) }
 
       ws.onmessage = (ev) => {
         try {
@@ -77,6 +80,7 @@ export function useWebSocket() {
       }
 
       ws.onclose = (ev) => {
+        wsCommandRef.current = null
         setConnected(false)
         // 4401 = token rejected — don't retry, force re-auth
         if (ev.code === 4401) {
