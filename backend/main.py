@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import os
+import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -34,30 +35,23 @@ def _valid_token(token: str | None) -> bool:
 
 def _test_mqtt(broker: str, port: int, username: str, password: str) -> bool:
     """Blocking MQTT connection test; run in a thread pool."""
-    connected: list[bool] = [False]
-    failed: list[bool] = [False]
-
-    def on_connect(client, userdata, flags, reason_code, properties):
-        if reason_code == 0:
-            connected[0] = True
-        else:
-            failed[0] = True
-
-    test_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    test_client.on_connect = on_connect
-    if username:
-        test_client.username_pw_set(username, password)
-    if port == 8883:
-        test_client.tls_set()
     try:
-        test_client.connect(broker, port, keepalive=5)
+        test_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        if username:
+            test_client.username_pw_set(username, password)
+        if port == 8883:
+            test_client.tls_set()
+        test_client.connect(broker, port, keepalive=10)
         test_client.loop_start()
-        deadline = time.time() + 8
-        while time.time() < deadline and not connected[0] and not failed[0]:
-            time.sleep(0.05)
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            if test_client.is_connected():
+                test_client.loop_stop()
+                test_client.disconnect()
+                return True
+            time.sleep(0.1)
         test_client.loop_stop()
-        test_client.disconnect()
-        return connected[0]
+        return False
     except Exception:
         return False
 
