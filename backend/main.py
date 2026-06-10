@@ -20,10 +20,6 @@ log = logging.getLogger("agc-backend")
 DATABASE_URL = os.environ.get(
     "DATABASE_URL", "postgresql://agc:agcpassword@localhost:5432/agcdb"
 )
-MQTT_BROKER = os.environ.get("MQTT_BROKER", "localhost")
-MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
-MQTT_USERNAME = os.environ.get("MQTT_USERNAME", "")
-MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 database = Database(DATABASE_URL)
 
@@ -260,15 +256,14 @@ async def _handle_alert(vehicle_id: str, alert: dict):
         log.warning(f"DB alert insert error: {e}")
 
 
-def start_mqtt():
+def start_mqtt(broker: str, port: int, username: str, password: str) -> mqtt.Client:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_message = on_mqtt_message
-    if MQTT_USERNAME:
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-    if MQTT_PORT == 8883:
+    if username:
+        client.username_pw_set(username, password)
+    if port == 8883:
         client.tls_set()
-    client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    # Wildcard: matches agc/{any_vehicle_id}/{type}
+    client.connect(broker, port, 60)
     client.subscribe(
         [
             ("agc/+/telemetry", 0),
@@ -340,6 +335,15 @@ async def ensure_schema():
         "CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp DESC)",
         "CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp DESC)",
         "CREATE INDEX IF NOT EXISTS idx_route_points_session ON route_points(session_id, timestamp)",
+        """CREATE TABLE IF NOT EXISTS mqtt_config (
+            id INT PRIMARY KEY DEFAULT 1,
+            broker VARCHAR(256) NOT NULL,
+            port INT NOT NULL DEFAULT 8883,
+            username VARCHAR(128) NOT NULL DEFAULT '',
+            password VARCHAR(256) NOT NULL DEFAULT '',
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            CHECK (id = 1)
+        )""",
     ]
     for stmt in statements:
         await database.execute(stmt)
@@ -356,7 +360,15 @@ async def lifespan(app: FastAPI):
     await database.connect()
     await ensure_schema()
     await asyncio.sleep(2)
-    mqtt_client = start_mqtt()
+    row = await database.fetch_one("SELECT broker, port, username, password FROM mqtt_config WHERE id = 1")
+    if row:
+        try:
+            mqtt_client = start_mqtt(row["broker"], row["port"], row["username"], row["password"])
+            log.info("MQTT reconnected to %s:%s from saved config", row["broker"], row["port"])
+        except Exception as e:
+            log.warning("MQTT reconnect failed (%s) — waiting for user to connect via UI", e)
+    else:
+        log.info("No saved MQTT config — waiting for user to connect via UI")
     yield
     if mqtt_client:
         mqtt_client.loop_stop()
@@ -663,11 +675,29 @@ class ConnectPayload(BaseModel):
 
 @app.post("/api/auth/connect")
 async def auth_connect(payload: ConnectPayload):
+    global mqtt_client
     ok = await asyncio.to_thread(
         _test_mqtt, payload.broker, payload.port, payload.username, payload.password
     )
     if not ok:
         raise HTTPException(status_code=401, detail="MQTT authentication failed")
+    await database.execute(
+        """INSERT INTO mqtt_config (id, broker, port, username, password, updated_at)
+           VALUES (1, :broker, :port, :username, :password, NOW())
+           ON CONFLICT (id) DO UPDATE
+           SET broker = EXCLUDED.broker, port = EXCLUDED.port,
+               username = EXCLUDED.username, password = EXCLUDED.password,
+               updated_at = NOW()""",
+        {"broker": payload.broker, "port": payload.port,
+         "username": payload.username, "password": payload.password},
+    )
+    if mqtt_client:
+        mqtt_client.loop_stop()
+        mqtt_client.disconnect()
+    try:
+        mqtt_client = start_mqtt(payload.broker, payload.port, payload.username, payload.password)
+    except Exception as e:
+        log.warning("Global MQTT listener failed to start: %s", e)
     token = str(uuid.uuid4())
     active_tokens.add(token)
     return {"token": token}

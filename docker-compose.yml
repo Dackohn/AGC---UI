@@ -23,7 +23,6 @@ services:
   backend:
     build: ./backend
     container_name: pbl26-golf-cart-26-backend
-    env_file: .env
     environment:
       DATABASE_URL: postgresql://agc:agcpassword@postgres:5432/agcdb
     depends_on:
