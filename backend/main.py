@@ -3,7 +3,6 @@ import json
 import logging
 import math
 import os
-import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -356,9 +355,7 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_event_loop()
     await database.connect()
     await ensure_schema()
-    import time
-
-    time.sleep(2)
+    await asyncio.sleep(2)
     mqtt_client = start_mqtt()
     yield
     if mqtt_client:

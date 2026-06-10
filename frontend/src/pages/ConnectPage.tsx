@@ -3,8 +3,8 @@ import { Wifi } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 export function ConnectPage() {
-  const [broker, setBroker] = useState('a19bbaf9d8a74507a6d0a3ce8d4ddbad.s1.eu.hivemq.cloud')
-  const [port, setPort] = useState('8883')
+  const [broker, setBroker] = useState('')
+  const [port, setPort] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -55,8 +55,9 @@ export function ConnectPage() {
             <input
               value={broker}
               onChange={(e) => setBroker(e.target.value)}
+              placeholder="xxxxxxxx.s1.eu.hivemq.cloud"
               required
-              className="w-full bg-slate-800 border border-agc-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-agc-green transition-colors"
+              className="w-full bg-slate-800 border border-agc-border rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-agc-green transition-colors"
             />
           </div>
 
@@ -67,8 +68,9 @@ export function ConnectPage() {
             <input
               value={port}
               onChange={(e) => setPort(e.target.value)}
+              placeholder="8883"
               required
-              className="w-full bg-slate-800 border border-agc-border rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-agc-green transition-colors"
+              className="w-full bg-slate-800 border border-agc-border rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-agc-green transition-colors"
             />
           </div>
 

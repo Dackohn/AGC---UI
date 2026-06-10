@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: agc-postgres
+    container_name: pbl26-golf-cart-26-db
     environment:
       POSTGRES_DB: agcdb
       POSTGRES_USER: agc
@@ -13,6 +13,7 @@ services:
       - agc-net
     restart: unless-stopped
     mem_limit: 128m
+    mem_reservation: 32m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agc -d agcdb"]
       interval: 10s
@@ -21,7 +22,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: agc-backend
+    container_name: pbl26-golf-cart-26-backend
     env_file: .env
     environment:
       DATABASE_URL: postgresql://agc:agcpassword@postgres:5432/agcdb
@@ -32,18 +33,22 @@ services:
       - agc-net
     restart: unless-stopped
     mem_limit: 256m
+    mem_reservation: 64m
 
   frontend:
     build: ./frontend
-    container_name: agc-frontend
+    container_name: pbl26-golf-cart-26-app
     ports:
       - "127.0.0.1:9003:80"
     depends_on:
       - backend
+    environment:
+      PUBLIC_URL: "https://golf-cart-26.microlab.club"
     networks:
       - agc-net
     restart: unless-stopped
     mem_limit: 64m
+    mem_reservation: 16m
 
 volumes:
   postgres-data:
